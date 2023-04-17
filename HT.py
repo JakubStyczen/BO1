@@ -1,21 +1,18 @@
-#mieskończone
-
+#skończone
 class Node:
-    def __init__(self, key, data, height=None, left=None, right=None):
+    def __init__(self, key, data, left=None, right=None):
         self.key = key
         self.data = data
         self.left = left
         self.right = right
-        self.height = height
     
     def __str__(self):
-        return f'{self.key} {self.data}'
+        return f'{key} {data}'
 
 class BST:
     def __init__(self, root=None):
         self.root = root
-    
-    i=0
+
     def search(self, key):
         if self.root is None:
             return None
@@ -38,11 +35,11 @@ class BST:
     
     def insert(self, key, data):
         if self.root is None:
-            self.root = Node(key, data, 0, None, None)
+            self.root = Node(key, data, None, None)
         else:
-            self.__insert(key, data, self.root)
+            return self.___insert(key, data, self.root)
         
-    def __insert(self, key, data, current_node):
+    def ___insert(self, key, data, current_node):
         if current_node.key == key:
             current_node.data = data
             return 
@@ -50,19 +47,19 @@ class BST:
             current_node.left = Node(key, data, None, None)
             return 
         elif current_node.key > key:
-            return self.__insert(key, data, current_node.left)
+            return self.___insert(key, data, current_node.left)
         elif current_node.key < key and current_node.right is None:
             current_node.right = Node(key, data, None, None)
             return 
         elif current_node.key < key:
-            return self.__insert(key, data, current_node.right)
+            return self.___insert(key, data, current_node.right)
         
     
     def delete(self, key):
         if self.root is None:
             return
         else:
-            self.__delete(key, self.root)
+            return self.__delete(key, self.root)
         
     def __delete(self, key, current_node):    
         #lewe
@@ -112,25 +109,23 @@ class BST:
         if starting_node_key is None:
             starting_node_key = self.root
         if starting_node_key != self.root:
-            return self.__height(self.__height_from_node(starting_node_key, self.root))
+            return self.___height(self.___height_from_node(starting_node_key, self.root))
         else:
-            return self.__height(starting_node_key)
+            return self.___height(starting_node_key)
     
-    def __height(self, node):
+    def ___height(self, node):
         if node is None:
             return -1 #0
         else:
-            L_H = self.__height(node.left)
-            R_H = self.__height(node.right)
+            L_H = self.___height(node.left)
+            R_H = self.___height(node.right)
             return R_H + 1 if R_H > L_H else L_H +1
     
-    def __height_from_node(self, key, node):
-        if node is None:
-            return None
+    def ___height_from_node(self, key, node):
         if node.key > key:
-            return self.__height_from_node(key, node.left)
+            return self.___height_from_node(key, node.left)
         elif node.key < key:
-            return self.__height_from_node(key, node.right)
+            return self.___height_from_node(key, node.right)
         else:
             return node
     
@@ -144,251 +139,161 @@ class BST:
             self.__print_tree(node.right, lvl+5)
 
             print()
-            print(lvl*" ", node.key, node.height)
+            print(lvl*" ", node.key, node.data)
      
             self.__print_tree(node.left, lvl+5)
+            
+            
+class NodeAVL(Node):
+    def __init__(self, key, data):
+        super().__init__(key, data)
+        self.height = 1
 
-    def update_height(self):
-        if self.root is None:
-            return
-        else:
-            self.__update_height(self.root)
-            
-    def __update_height(self, node):
-        if node!=None:
-            self.__update_height(node.right)
-            node.height = self.height(node.key)
-            self.__update_height(node.left)
-            
 class AVL(BST):
     
-    # def __insert_balance_check(self, node, path = []):
-    #     if node is self.root:
-    #         return
-    #     path = [node] + path
-    #     left_sub_tree_height = self.height(node.left.key)
-    #     right_sub_tree_height = self.height(node.right.key)
-        
-    #     if abs(right_sub_tree_height - left_sub_tree_height) > 1:
-    #         pass
-        
     def insert(self, key, data):
-        super().insert(key, data)
-        self.rebalance()
-        self.update_height()
-    
+        if self.root is None:
+            self.root = NodeAVL(key, data)
+        else:
+            self.root = self.__insert(key, data, self.root)
+
+    def __insert(self, key, data, current_node):
+        if current_node is None:
+            return NodeAVL(key, data)
+        elif key < current_node.key:
+            current_node.left = self.__insert(key, data, current_node.left)
+        else:
+            current_node.right = self.__insert(key, data, current_node.right)
+
+        #rebalnace
+
+        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
+        balance_coefficient = self.__balance_coefficient(current_node)
+
+        #RL
+        if balance_coefficient < -1 and key < current_node.right.key:
+            current_node.right = self._rotate_right(current_node.right)
+            return self._rotate_left(current_node)
+        #LR
+        elif balance_coefficient > 1 and key > current_node.left.key:
+            current_node.left = self._rotate_left(current_node.left)
+            return self._rotate_right(current_node)
+        #RR
+        elif balance_coefficient > 1 and key < current_node.left.key:
+            return self._rotate_right(current_node)
+        #LL
+        elif balance_coefficient < -1 and key > current_node.right.key:
+            return self._rotate_left(current_node)
+
+        
+
+
+
+        return current_node
+
     def delete(self, key):
-        super().delete(key)
-        self.rebalance()
-        self.update_height()
-    
-    
-    def rebalance(self, node='root'):
-        if node is None:
+        if self.root is None:
             return
-        
+        self.root = self.__delete(key, self.root)
 
-        #rebalance roota
-        if node == 'root':
-            self.__rebalance(self.root)
-            self.root.left = self.__rebalance(self.root.left)
-            # #rebalance lewej
-            self.root.right = self.__rebalance(self.root.right)
-            return
-        node.left = self.__rebalance(node.left)
-        # #rebalance lewej
-        node.right = self.__rebalance(node.right)
+    def __delete(self, key, current_node):
+        if current_node is None:
+            return current_node
+        elif key < current_node.key:
+            current_node.left = self.__delete(key, current_node.left)
+        elif key > current_node.key:
+            current_node.right = self.__delete(key, current_node.right)
+        else:
+            if current_node.left is None:
+                return current_node.right
+            elif current_node.right is None:
+                return current_node.left
+            else:
+                lowest = current_node.right
+                while lowest.left is not None:
+                    lowest = lowest.left
+                
+                current_node.key = lowest.key
+                current_node.data = lowest.data
+                
+                current_node.right = self.__delete(lowest.key, current_node.right)
+        if current_node is None:
+            return current_node
 
-        # #rebalance prawej
+        #rebalance
+        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
+        balance_coefficient = self.__balance_coefficient(current_node)
+        
+        #LR
+        if balance_coefficient > 1 and self.__balance_coefficient(current_node.left) < 0:
+            current_node.left = self._rotate_left(current_node.left)
+            return self._rotate_right(current_node)
+        #RL 
+        elif balance_coefficient < -1 and self.__balance_coefficient(current_node.right) > 0:
+            current_node.right = self._rotate_right(current_node.right)
+            return self._rotate_left(current_node)
+        
+        #RR
+        elif balance_coefficient > 1 and self.__balance_coefficient(current_node.left) >= 0:
+            return self._rotate_right(current_node)
 
-        
-    # def check_balance(self):
-    #     return self.__check_balance(self.root)
-        
-    # def __check_balance(self, node):
-        
+        #LL
+        elif balance_coefficient < -1 and self.__balance_coefficient(current_node.right) <= 0:
+            return self._rotate_left(current_node)
+
+        return current_node
     
-    def __rebalance(self, z):
-        if z is None:
-            return None
+    def _rotate_left(self, current_node):
+        new_start_node = current_node.right
+        current_node.right = new_start_node.left
+        new_start_node.left = current_node
         
-        old_root = self.root if z is self.root else None
-        # #rebalance lewej
-        # z.left = self.__rebalance(z.left)
-        # #rebalance prawej
-        # z.right = self.__rebalance(z.right)
+        #update height of rebalanced nodes
+        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
+        new_start_node.height = max(self.__height(new_start_node.left), self.__height(new_start_node.right)) + 1
         
-        if z.left is not None:
-            left_sub_tree_height = self.height(z.left.key)
-        else:
-            left_sub_tree_height = -1
-            
-        if z.right is not None:
-            right_sub_tree_height = self.height(z.right.key)
-        else:
-            right_sub_tree_height = -1
-            
-        unbalanced_coeff = left_sub_tree_height-right_sub_tree_height
-        #left
-        if unbalanced_coeff < 0:
-            if z.right and z.right.left is not None:
-                left_sub_tree_height = self.height(z.right.left.key)
-            else:
-                left_sub_tree_height = -1
-                
-            if z.right and z.right.right is not None:
-                right_sub_tree_height = self.height(z.right.right.key)
-            else:
-                right_sub_tree_height = -1
-            #check right child
-            if left_sub_tree_height - right_sub_tree_height > 0:
-                #R
-                z.right = self.rotate_right(z.right)
-            #L
-            new_z = self.rotate_left(z)
-            self.update_height()
-            if old_root is not None:
-                self.root = new_z
-                return
-            return new_z
-            
-  
-        #right
-        if unbalanced_coeff > 0:
-            if z.left and z.left.left is not None:
-                left_sub_tree_height = self.height(z.left.left.key)
-            else:
-                left_sub_tree_height = -1
-                
-            if z.left and z.left.right is not None:
-                right_sub_tree_height = self.height(z.left.right.key)
-            else:
-                right_sub_tree_height = -1
-            
-            #check left child
-            if left_sub_tree_height - right_sub_tree_height < 0:
-                #L
-                z.left = self.rotate_left(z.left)
-                self.update_height()
-            #r
-            new_z = self.rotate_right(z)
-            self.update_height()
-            if old_root is not None:
-                self.root = new_z
-                return
-            return new_z
+        return new_start_node
 
-        return z
-            
-    def rebalance2(self, z):
-        if z is None:
-            return None
+    def _rotate_right(self, current_node):
+        new_start_node = current_node.left
+        current_node.left = new_start_node.right
+        new_start_node.right = current_node
         
-        old_root = self.root if z is self.root else None
+        #update height of rebalanced nodes
+        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
+        new_start_node.height = max(self.__height(new_start_node.left), self.__height(new_start_node.right)) + 1
         
-        if z.left is not None:
-            left_sub_tree_height = self.height(z.left.key)
+        return new_start_node
+
+    def __height(self, current_node):
+        if current_node is None:
+            return 0
+        return current_node.height
+
+    def __balance_coefficient(self, current_node):
+        if current_node is None:
+            return 0
         else:
-            left_sub_tree_height = -1
-            
-        if z.right is not None:
-            right_sub_tree_height = self.height(z.right.key)
-        else:
-            right_sub_tree_height = -1
-            
-        unbalanced_coeff = left_sub_tree_height-right_sub_tree_height
-        #left
-        if unbalanced_coeff < 0:
-            if z.right and z.right.left is not None:
-                left_sub_tree_height = self.height(z.right.left)
-            else:
-                left_sub_tree_height = -1
-                
-            if z.rightt and z.right.right is not None:
-                right_sub_tree_height = self.height(z.right.right)
-            else:
-                right_sub_tree_height = -1
-            #check right child
-            if left_sub_tree_height - right_sub_tree_height > 0:
-                #R
-                z.right = self.rotate_right(z.right)
-            #L
-            new_z = self.rotate_left(z)
-            self.update_height()
-            if old_root is not None:
-                self.root = new_z
-                return
-            return new_z
-            
+            return self.__height(current_node.left) - self.__height(current_node.right)
 
-        #right
-        if unbalanced_coeff > 0:
-            if z.left and z.left.left is not None:
-                left_sub_tree_height = self.height(z.left.left.key)
-            else:
-                left_sub_tree_height = -1
-                
-            if z.left and z.left.right is not None:
-                right_sub_tree_height = self.height(z.left.right.key)
-            else:
-                right_sub_tree_height = -1
-            
-            #check left child
-            if left_sub_tree_height - right_sub_tree_height < 0:
-                #L
-                z.left = self.rotate_left(z.left)
-                self.update_height()
-            #r
-            new_z = self.rotate_right(z)
-            self.update_height()
-            if old_root is not None:
-                self.root = new_z
-                return
-            return new_z
 
-        return z            
-
-    def rotate_left(self, z):
-        y = z.right
-        y_left_subtree = y.left
-        z.right = y_left_subtree
-        y.left = z
-
-        return y
-    
-    def rotate_right(self, z):
-        y = z.left
-        y_right_subtree = y.right
-        z.left = y_right_subtree
-        y.right = z
-
-        return y
-    
-if __name__ == "__main__":
-    bst = AVL()
-    nodes = {50:'A', 15:'B', 62:'C', 5:'D', 2:'E', 1:'F', 11:'G', 100:'H', 7:'I', 6:'J', 55:'K', 52:'L', 51:'M', 57:'N', 8:'O', 9:'P', 10:'R', 99:'S', 12:'T'}
-    # nodes = {50:'A', 45:'B',40:'C'}
-    for key, data in nodes.items():
-        bst.insert(key, data)
-    bst.print_tree()
-    # bst.rebalance(bst.root.left)
-    # bst.root.left = bst.rebalance2(bst.root.left)
-    # bst.root.left.right = bst.rebalance2(bst.root.left.right)
-    # bst.root.left.left = bst.rebalance2(bst.root.left.left)
-    bst.print_tree()
-    # bst.print()
-    # print()
-    # print(bst.search(10))
-    # bst.delete(50)
-    # bst.delete(52)
-    # bst.delete(11)
-    # bst.delete(57)
-    # bst.delete(1)
-    # bst.delete(12)
-    # bst.insert(3, 'AA')
-    # bst.insert(4, 'BB')
-    # bst.delete(7)
-    # bst.delete(8)
-    # bst.print_tree()
-    # bst.print()
-
+if __name__ == "__main__":   
+    avl = AVL()
+    for key, data in {50:'A', 15:'B', 62:'C', 5:'D', 2:'E', 1:'F', 11:'G', 100:'H', 7:'I', 6:'J', 55:'K', 52:'L', 51:'M', 57:'N', 8:'O', 9:'P', 10:'R', 99:'S', 12: 'T'}.items():
+            avl.insert(key, data)
+    avl.print_tree()
+    avl.print()
+    print()
+    print(avl.search(10))
+    avl.delete(50)
+    avl.delete(52)
+    avl.delete(11)
+    avl.delete(57)
+    avl.delete(1)
+    avl.delete(12)
+    avl.insert(3, 'AA')
+    avl.insert(4, 'BB')
+    avl.delete(7)
+    avl.delete(8)
+    avl.print_tree()
+    avl.print()
