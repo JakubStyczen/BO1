@@ -129,6 +129,45 @@ class NeighborListGraph(Graph):
     def neighbors(self, vertex_idx):
         v = self.getVertex(vertex_idx)
         return self.neighbors_dict[v]
+    
+    def BFS(self, start):
+        Q = [start]
+        visited = [start]
+        while Q:
+            v = Q.pop(0)
+            for u in self.neighbors_dict[v]:
+                if u not in visited:
+                    Q.append(u)
+                    visited.append(u)
+        return visited
+    
+    def DFS(self, start):
+        S = [start]
+        visited = [start]
+        while S:
+            v = S.pop(len(S)-1)
+            for u in self.neighbors_dict[v]:
+                if u not in visited:
+                    S.append(u)
+                    visited.append(u)
+        return visited
+    
+    def graphColoring(self, traverse_type, start):
+        if traverse_type == "BFS":
+            sequence = self.BFS(start)
+        elif traverse_type == "DFS":
+            sequence = self.DFS(start)
+        else:
+            print('Wrong type of graph traversing')
+            return
+        colors = {}
+        V = len(sequence)
+        for v in sequence:
+            neighbors_colors = set(colors.get(neighbor) for neighbor in self.neighbors_dict[v])
+            opts = [col for col in range(V) if col not in neighbors_colors]
+            colors[v] = opts[0]
+            
+        return [(str(lstG.getVertex(u)), color) for u, color in colors.items()]
         
 class NeighborMatrixGraph(Graph):
     def __init__(self, placeholder=0):
@@ -202,14 +241,8 @@ if __name__ =="__main__":
         end = Vertex(polska.slownik[end])
         matG.insertEdge(start, end)
         lstG.insertEdge(start, end)
-    matG.deleteEdge(Vertex(polska.slownik['W']), Vertex(polska.slownik['E']))
-    matG.deleteEdge(Vertex(polska.slownik['E']), Vertex(polska.slownik['W']))
-    matG.deleteVertex(Vertex(polska.slownik['K']))
-    lstG.deleteVertex(Vertex(polska.slownik['K'])) 
-    lstG.deleteEdge(Vertex(polska.slownik['E']), Vertex(polska.slownik['W']))
-    lstG.deleteEdge(Vertex(polska.slownik['W']), Vertex(polska.slownik['E']))
-    polska.draw_map(matG.edges())
-    polska.draw_map(lstG.edges())
+    polska.draw_map(matG.edges(), lstG.graphColoring("BFS", 14))
+    # polska.draw_map(lstG.edges(), lstG.graphColoring("DFS", 14))
 
         
        
