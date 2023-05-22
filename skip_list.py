@@ -1,218 +1,246 @@
-import polska
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+from copy import deepcopy
 
-class Graph:
-    def __init__(self):
-        self.vertex_dict = {}
-    
-    def isEmpty(self):
-        return True if self.vertex_dict else False
 
-    def insertVertex(self, v):
-        self.vertex_dict[v] = self.order()
-    
-    def deleteVertex(self, removed_idx):
-        for v, idx in self.vertex_dict.items():
-            if idx == removed_idx:
-                del self.vertex_dict[v]
-                break
-    
-    def deleteEdge(self):
-        pass
-    
-    def getVertexIdx(self, v):
-        return self.vertex_dict[v]
-        
-    def getVertex(self, v_idx):
-        for v, idx in self.vertex_dict.items():
-            if idx == v_idx:
-                return v 
-    
-    def order(self):
-        return len(self.vertex_dict)
-        
-    def size(self):
-        pass
-    
 class Vertex:
     def __init__(self, key):
-        self.key = key[2]
-        self.data = key[:2]
-        
+        self.key = key
+        self.color = None
+
     def __eq__(self, other):
         return self.key == other.key
-    
+
     def __hash__(self):
         return hash(self.key)
-    
+
     def __str__(self):
-        return str(self.key)
-    
+        return f"{self.key}"
+
     def __repr__(self):
-        return str(self.key)
+        return f"{self.key}"
 
-class NeighborListGraph(Graph):
+
+class GraphList:
     def __init__(self):
-        super().__init__()
-        self.neighbors_dict = {}
-        self.test = 0
-    
-    def insertVertex(self, v):
-        super().insertVertex(v)
-        self.neighbors_dict[self.vertex_dict[v]] = []
-    
-    def insertEdge(self, v_start, v_end):
-        if v_start not in self.vertex_dict:
-            self.insertVertex(v_start)
-        if v_end not in self.vertex_dict:
-            self.insertVertex(v_end)
-        start_id, end_id = self.getVertexIdx(v_start), self.getVertexIdx(v_end)
-        if end_id not in self.neighbors_dict[start_id]:
-            self.neighbors_dict[start_id].append(end_id)
-            self.neighbors_dict[start_id].sort()
-        if start_id not in self.neighbors_dict[end_id]:
-            self.neighbors_dict[end_id].append(start_id)
-            self.neighbors_dict[end_id].sort()
-        
-    def deleteEdge(self, v_start, v_end):
-        start_id, end_id = self.getVertexIdx(v_start), self.getVertexIdx(v_end)
-        if start_id in self.neighbors_dict[end_id]:
-            self.neighbors_dict[end_id].remove(start_id)
-        if end_id in self.neighbors_dict[start_id]:
-            self.neighbors_dict[start_id].remove(end_id)
-        
-    
-    def deleteVertex(self, v):
-        removed_idx = self.getVertexIdx(v)
-        super().deleteVertex(removed_idx)
-        del self.neighbors_dict[removed_idx]
-        
-        #delete v_idx from neighbors_dict
-        for ends in self.neighbors_dict.values():
-            if removed_idx in ends:
-                ends.remove(removed_idx)
-                
-        #decrese idxs > rm_idx by 1
-        for v, idx in self.vertex_dict.items():
-            if idx == removed_idx:
-                del self.vertex_dict[v]
-            if idx > removed_idx:
-                self.vertex_dict[v] = idx - 1
-                
-        #update dict for deleted        
-        updated = {}
-        for v_idx, ends in self.neighbors_dict.items():
-            new_ends = []
-            for end in ends:
-                if v_idx > removed_idx:
-                    new_ends.append(end-1)
-                else:
-                    new_ends.append(end)
-            if v_idx > removed_idx:
-                updated[v_idx-1] = new_ends
+        self.vertex_list = []
+        self.vertex_dict = {}
+        self.neighbours_list = {}
+
+    def insertVertex(self, vertex: Vertex):
+        self.vertex_dict[vertex] = self.order()
+        self.neighbours_list[self.order()] = []
+        self.vertex_list.append(vertex)
+
+    def insertEdge(self, vertex1, vertex2, edge=1):
+        id_1 = self.getVertexIdx(vertex1)
+        id_2 = self.getVertexIdx(vertex2)
+        self.neighbours_list[id_1].append((id_2, edge))  # adding with weight of edge
+        self.neighbours_list[id_2].append((id_1, edge))
+        self.neighbours_list[id_1] = sorted(set(self.neighbours_list[id_1]))
+        self.neighbours_list[id_2] = sorted(set(self.neighbours_list[id_2]))
+
+    def deleteVertex(self, vertex):
+        id_vertex = self.getVertexIdx(vertex)
+        self.vertex_list.remove(vertex)  # remove from list
+        # reindexing dict:
+        new_dict = {}
+        for k, v in self.vertex_dict.items():
+            if v == id_vertex:
+                continue
+            if v > id_vertex:
+                new_dict[k] = v - 1
             else:
-                updated[v_idx] = new_ends
-        self.neighbors_dict = updated
-        
+                new_dict[k] = v
+        self.vertex_dict = new_dict
+
+        # recreating neighbours list:
+        new_neigh_list = {}
+        for key in self.neighbours_list.keys():
+            new_values = []  # new list of values for every key
+            for value in self.neighbours_list[key]:
+                if value[0] == id_vertex:  # delete node
+                    continue
+                if value[0] > id_vertex:  # add reindexed node
+                    new_values.append((value[0] - 1, value[1]))
+                else:
+                    new_values.append(value)  # if node < deleting node dont change anything
+            if key > id_vertex:
+                new_neigh_list[key - 1] = new_values  # if key > deleting node reindex it
+                continue
+            if key == id_vertex:  # skip this key (node is deleted)
+                continue
+            else:
+                new_neigh_list[key] = new_values  # if node < deleting node dont change anything
+        self.neighbours_list = new_neigh_list
+
+    def deleteEdge(self, vertex1, vertex2):
+        id_1 = self.getVertexIdx(vertex1)
+        id_2 = self.getVertexIdx(vertex2)
+
+        for edge in self.neighbours_list[id_1]:
+            if edge[0] == id_2:
+                self.neighbours_list[id_1].remove(edge)
+                break
+        for edge in self.neighbours_list[id_2]:
+            if edge[0] == id_1:
+                self.neighbours_list[id_2].remove(edge)
+                break
+
+    def getVertexIdx(self, vertex):
+        return self.vertex_dict[vertex]
+
+    def getVertex(self, vertex_idx):
+        for k, v in self.vertex_dict.items():
+            if v == vertex_idx:
+                return k
+
+    def neighbours(self, vertex_idx):
+        return self.neighbours_list[vertex_idx]
+
+    def order(self):
+        return len(self.vertex_list)
+
     def size(self):
-        return len(self.edges())
-    
+        edges = 0
+        for v in self.neighbours_list.values():
+            edges += len(v)
+        return int(edges / 2)
+
     def edges(self):
-        res = []
-        for start, ends in self.neighbors_dict.items():
-            for end in ends:
-                v_start = self.getVertex(start)
-                v_end = self.getVertex(end)
-                if (v_start.key, v_end.key) not in res or (v_end.key, v_start.key) not in res:
-                    res.append((v_start.key, v_end.key))
-        return res
+        edges_ = []
+        for key in self.neighbours_list.keys():
+            for value in self.neighbours_list[key]:
+                if (key, value[0]) and (value[0], key) not in edges_:
+                    edges_.append((key, value[0]))
+        edges = []
+        for pair in edges_:
+            weight = 0
+            v1 = pair[0]
+            v2 = pair[1]
+            for edge in self.neighbours_list[v1]:
+                if edge[0] == v2:
+                    weight = edge[1]
+                    break
+            edges.append((str(self.getVertex(pair[0])), str(self.getVertex(pair[1])), weight))
+        return edges
 
-    def neighbors(self, vertex_idx):
-        v = self.getVertex(vertex_idx)
-        return self.neighbors_dict[v]
-        
-class NeighborMatrixGraph(Graph):
-    def __init__(self, placeholder=0):
-        super().__init__()
-        self.neighbors_maxtrix = [[]]
-        self.placeholder = placeholder
+    def DFS(self, s):
+        visited = []
+        S = [s]
+        while S:
+            v = S.pop(-1)
+            if v not in visited:
+                visited.append(v)
+                if v in self.neighbours_list.keys():
+                    self.neighbours_list[v].reverse()
+                    for u in self.neighbours_list[v]:
+                        S.append(u[0])
+        return visited
 
-    def insertVertex(self, v):
-        super().insertVertex(v)
-        if not self.neighbors_maxtrix[0]:
-            self.neighbors_maxtrix[0].append(self.placeholder)
-        else:
-            for row in self.neighbors_maxtrix:
-                row.append(self.placeholder)
-            self.neighbors_maxtrix.append([self.placeholder for _ in range(len(self.neighbors_maxtrix[0]))])
-
-    def insertEdge(self, v_start, v_end, edge=1):
-        if v_start not in self.vertex_dict:
-            self.insertVertex(v_start)
-        if v_end not in self.vertex_dict:
-            self.insertVertex(v_end)
-        start_id = self.getVertexIdx(v_start)
-        end_id = self.getVertexIdx(v_end)
-        self.neighbors_maxtrix[start_id][end_id] = edge
-        
-
-    def deleteEdge(self, v_start, v_end):
-        start_id = self.getVertexIdx(v_start)
-        end_id = self.getVertexIdx(v_end)
-        self.neighbors_maxtrix[start_id][end_id] = self.placeholder
-    
-    def deleteVertex(self, v):
-        removed_idx = self.getVertexIdx(v)
-        super().deleteVertex(removed_idx)
-        #delete row with idx
-        self.neighbors_maxtrix.pop(removed_idx)
-        #delete column
-        for row in self.neighbors_maxtrix:
-            for idx in range(len(row)):
-                if idx == removed_idx:
-                    row.pop(removed_idx)
-
-    
-    def size(self):
-        return len(self.edges())
-    
-    def neighbors(self, v_idx):
-        res = []
-        for idx, elem in enumerate(self.neighbors_maxtrix[v_idx]):
-            if elem != 0:
-                res.append(idx)
-        return res
-            
-    def edges(self):
-        res = []
-        for i, row in enumerate(self.neighbors_maxtrix):
-            for j, elem in enumerate(row):
-                if self.neighbors_maxtrix[i][j] != 0:
-                    v_start = self.getVertex(i)
-                    v_end = self.getVertex(j)
-                    if (v_start.key, v_end.key) not in res or (v_end.key, v_start.key) not in res:
-                        res.append((v_start.key, v_end.key))
-        return res
-    
-    
-if __name__ =="__main__":
-    matG = NeighborMatrixGraph()
-    lstG = NeighborListGraph()
-    for start, end in polska.graf:
-        start = Vertex(polska.slownik[start])
-        end = Vertex(polska.slownik[end])
-        matG.insertEdge(start, end)
-        lstG.insertEdge(start, end)
-    matG.deleteEdge(Vertex(polska.slownik['W']), Vertex(polska.slownik['E']))
-    matG.deleteEdge(Vertex(polska.slownik['E']), Vertex(polska.slownik['W']))
-    matG.deleteVertex(Vertex(polska.slownik['K']))
-    lstG.deleteVertex(Vertex(polska.slownik['K'])) 
-    lstG.deleteEdge(Vertex(polska.slownik['E']), Vertex(polska.slownik['W']))
-    lstG.deleteEdge(Vertex(polska.slownik['W']), Vertex(polska.slownik['E']))
-    polska.draw_map(matG.edges())
-    polska.draw_map(lstG.edges())
-
-        
-       
+    def __str__(self):
+        return "\n".join([str(k) + " : " + str(v) for k, v in self.neighbours_list.items()])
 
 
+class MST:
+    def __init__(self, graph: GraphList):
+        self.base_graph = deepcopy(graph)
+        self.graph_MST = None
+        self.size = self.graph_MST.order()
 
+        self.intree = [0 for _ in range(self.size)]
+        self.distance = [float("inf") for _ in range(self.size)]
+        self.parent = [-1 for _ in range(self.size)]
+
+    @property
+    def graph_MST(self):
+        return self.__graph_MST
+
+    @graph_MST.setter
+    def graph_MST(self, value):
+        self.__graph_MST = GraphList()
+        for vertex in self.base_graph.vertex_list:
+            self.__graph_MST.insertVertex(vertex)
+
+    def Prim(self, v):
+        edge_weights = []
+        while self.intree[v] == 0:
+            current = v
+            self.intree[v] = 1
+            for neighbour in self.base_graph.neighbours_list[v]:
+                if neighbour[1] < self.distance[neighbour[0]]:
+                    self.distance[neighbour[0]] = neighbour[1]  # update cost
+                    self.parent[neighbour[0]] = current  # update parent
+            min_cost = float("inf")
+            for vertex in self.base_graph.neighbours_list.keys():
+                if self.intree[vertex] == 0:
+                    if self.distance[vertex] < min_cost:  # find lowest weight of edge
+                        min_cost = self.distance[vertex]
+                        v = vertex  # next step vertex
+            edge_weight = 0
+            # look for edge weight in basegraph and add it to sum of weights
+            for edge in self.base_graph.neighbours_list[self.parent[v]]:
+                if edge[0] == v:
+                    edge_weight = edge[1]
+                    edge_weights.append(edge_weight)
+                    break
+            self.graph_MST.insertEdge(self.graph_MST.getVertex(self.parent[v]), self.graph_MST.getVertex(v),
+                                      edge_weight)
+        return sum(edge_weights[:-1])  # returns sum of MST
+
+if __name__ == '__main__':
+    I = cv2.imread('sample.png', cv2.IMREAD_GRAYSCALE)
+    #plt.imshow(I, 'gray')
+    #plt.show()
+    img_height = I.shape[0]
+    vertices = []
+    gl = GraphList()
+    for i in range(I.shape[0]):
+        for j in range(I.shape[1]):
+            v = Vertex(str(img_height * i + j))
+            v.color = I[i][j]
+            vertices.append(v)
+            gl.insertVertex(v)
+
+    for i in range(1, I.shape[0] - 1):
+        for j in range(1, I.shape[1] - 1):
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i - 1) + (j - 1))),
+                          abs(I[i][j].astype(int) - I[i - 1][j - 1].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i + 1) + (j + 1))),
+                          abs(I[i][j].astype(int) - I[i + 1][j + 1].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i - 1) + (j + 1))),
+                          abs(I[i][j].astype(int) - I[i - 1][j + 1].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i + 1) + (j - 1))),
+                          abs(I[i][j].astype(int) - I[i + 1][j - 1].astype(int)))
+
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i - 1) + j)),
+                          abs(I[i][j].astype(int) - I[i - 1][j].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * (i + 1) + j)),
+                          abs(I[i][j].astype(int) - I[i + 1][j].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * i + (j - 1))),
+                          abs(I[i][j].astype(int) - I[i][j - 1].astype(int)))
+            gl.insertEdge(Vertex(str(img_height * i + j)), Vertex(str(img_height * i + (j + 1))),
+                          abs(I[i][j].astype(int) - I[i][j + 1].astype(int)))
+
+    m = MST(gl)
+    m.Prim(0)
+    list_edges = m.graph_MST.edges()
+
+    sorted_list_edges = sorted(list_edges, key=lambda tup: tup[2])
+    sorted_list_edges.reverse()
+    print(len(list_edges))
+    m.graph_MST.deleteEdge(Vertex(sorted_list_edges[0][0]), Vertex(sorted_list_edges[0][1]))
+    print(len(m.graph_MST.edges()))
+    vertices1 = m.graph_MST.DFS(int(sorted_list_edges[0][0]))
+    vertices2 = m.graph_MST.DFS(int(sorted_list_edges[0][1]))
+    IS = np.zeros((I.shape[0], I.shape[1]), dtype='uint8')
+
+    for i in range( I.shape[0]):
+        for j in range(I.shape[1]):
+            if img_height * i + j in vertices1:
+                IS[i][j] = 180
+            elif img_height * i + j in vertices2:
+                IS[i][j] = 50
+    plt.imshow(IS, 'gray', vmin=0, vmax=255)
+    plt.show()

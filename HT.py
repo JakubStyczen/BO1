@@ -1,299 +1,238 @@
-#skończone
-class Node:
-    def __init__(self, key, data, left=None, right=None):
+# Ford Fulkerson algorithm
+# Dominik Tomalczyk
+
+class Vertex:
+    def __init__(self, key):
         self.key = key
-        self.data = data
-        self.left = left
-        self.right = right
-    
+        self.color = None
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(self.key)
+
     def __str__(self):
-        return f'{key} {data}'
+        return f"{self.key}"
 
-class BST:
-    def __init__(self, root=None):
-        self.root = root
-
-    def search(self, key):
-        if self.root is None:
-            return None
-        else:
-            return self.__search(key, self.root)
-
-            
-    def __search(self, key, node):
-        #lewe
-        if node.key > key:
-            node_r = self.__search(key, node.left)
-        #prawe
-        elif node.key < key:
-            node_r = self.__search(key, node.right)
-        #równe
-        else:
-            return node.data
-        return node_r
-            
-    
-    def insert(self, key, data):
-        if self.root is None:
-            self.root = Node(key, data, None, None)
-        else:
-            return self.___insert(key, data, self.root)
-        
-    def ___insert(self, key, data, current_node):
-        if current_node.key == key:
-            current_node.data = data
-            return 
-        elif current_node.key > key and current_node.left is None:
-            current_node.left = Node(key, data, None, None)
-            return 
-        elif current_node.key > key:
-            return self.___insert(key, data, current_node.left)
-        elif current_node.key < key and current_node.right is None:
-            current_node.right = Node(key, data, None, None)
-            return 
-        elif current_node.key < key:
-            return self.___insert(key, data, current_node.right)
-        
-    
-    def delete(self, key):
-        if self.root is None:
-            return
-        else:
-            return self.__delete(key, self.root)
-        
-    def __delete(self, key, current_node):    
-        #lewe
-        if current_node.key > key:
-            current_node.left = self.__delete(key, current_node.left)
-        #prawe
-        elif current_node.key < key:
-            current_node.right = self.__delete(key, current_node.right)
-        #równe
-        else:
-            #bez dzieci
-            if current_node.left is None and current_node.right is None:
-                return None
-            #tylko prawe 
-            elif current_node.left is None:
-                return current_node.right
-            #tylko lewe
-            elif current_node.right is None:
-                return current_node.left
-            #oba 
-            lowest = current_node.right
-            while lowest.left is not None:
-                lowest = lowest.left
-            
-            current_node.key = lowest.key
-            current_node.data = lowest.data
-            
-            current_node.right = self.__delete(lowest.key, current_node.right)
-            
-        return current_node
-        
-    
-    def print(self):
-        if self.root is None:
-            return ""
-        else:
-            return self.__print(self.root)
-    
-    def __print(self, node):
-        if node.left is not None:
-            self.__print(node.left)
-        print(f'{node.key} {node.data},', end="")
-        if node.right is not None:
-            self.__print(node.right)
-    
-    def height(self, starting_node_key=None):
-        if starting_node_key is None:
-            starting_node_key = self.root
-        if starting_node_key != self.root:
-            return self.___height(self.___height_from_node(starting_node_key, self.root))
-        else:
-            return self.___height(starting_node_key)
-    
-    def ___height(self, node):
-        if node is None:
-            return -1 #0
-        else:
-            L_H = self.___height(node.left)
-            R_H = self.___height(node.right)
-            return R_H + 1 if R_H > L_H else L_H +1
-    
-    def ___height_from_node(self, key, node):
-        if node.key > key:
-            return self.___height_from_node(key, node.left)
-        elif node.key < key:
-            return self.___height_from_node(key, node.right)
-        else:
-            return node
-    
-    def print_tree(self):
-        print("==============")
-        self.__print_tree(self.root, 0)
-        print("==============")
-
-    def __print_tree(self, node, lvl):
-        if node!=None:
-            self.__print_tree(node.right, lvl+5)
-
-            print()
-            print(lvl*" ", node.key, node.data)
-     
-            self.__print_tree(node.left, lvl+5)
-            
-            
-class NodeAVL(Node):
-    def __init__(self, key, data):
-        super().__init__(key, data)
-        self.height = 1
-
-class AVL(BST):
-    
-    def insert(self, key, data):
-        if self.root is None:
-            self.root = NodeAVL(key, data)
-        else:
-            self.root = self.__insert(key, data, self.root)
-
-    def __insert(self, key, data, current_node):
-        if current_node is None:
-            return NodeAVL(key, data)
-        elif key < current_node.key:
-            current_node.left = self.__insert(key, data, current_node.left)
-        else:
-            current_node.right = self.__insert(key, data, current_node.right)
-
-        #rebalnace
-
-        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
-        balance_coefficient = self.__balance_coefficient(current_node)
-
-        #RL
-        if balance_coefficient < -1 and key < current_node.right.key:
-            current_node.right = self._rotate_right(current_node.right)
-            return self._rotate_left(current_node)
-        #LR
-        elif balance_coefficient > 1 and key > current_node.left.key:
-            current_node.left = self._rotate_left(current_node.left)
-            return self._rotate_right(current_node)
-        #RR
-        elif balance_coefficient > 1 and key < current_node.left.key:
-            return self._rotate_right(current_node)
-        #LL
-        elif balance_coefficient < -1 and key > current_node.right.key:
-            return self._rotate_left(current_node)
-
-        
+    def __repr__(self):
+        return f"{self.key}"
 
 
+class GraphList:
+    def __init__(self):
+        self.vertex_list = []
+        self.vertex_dict = {}
+        self.neighbours_list = []
 
-        return current_node
+    def insertVertex(self, vertex: Vertex):
+        self.vertex_dict[vertex] = self.order()
+        self.neighbours_list.append([])
+        self.vertex_list.append(vertex)
 
-    def delete(self, key):
-        if self.root is None:
-            return
-        self.root = self.__delete(key, self.root)
+    def insertEdge(self, vertex1, vertex2, edge):
+        id_1 = self.getVertexIdx(vertex1)
+        id_2 = self.getVertexIdx(vertex2)
+        self.neighbours_list[id_1].append((id_2, edge))  # adding with weight of edge
+        self.neighbours_list[id_1] = self.neighbours_list[id_1]
 
-    def __delete(self, key, current_node):
-        if current_node is None:
-            return current_node
-        elif key < current_node.key:
-            current_node.left = self.__delete(key, current_node.left)
-        elif key > current_node.key:
-            current_node.right = self.__delete(key, current_node.right)
-        else:
-            if current_node.left is None:
-                return current_node.right
-            elif current_node.right is None:
-                return current_node.left
+        # GRAPH IS NOW DIRECTED !!!
+        # self.neighbours_list[id_2].append((id_1, edge))
+        # self.neighbours_list[id_2] = sorted(set(self.neighbours_list[id_2]))
+
+    def deleteVertex(self, vertex):
+        id_vertex = self.getVertexIdx(vertex)
+        self.vertex_list.remove(vertex)  # remove from list
+        # reindexing dict:
+        new_dict = {}
+        for k, v in self.vertex_dict.items():
+            if v == id_vertex:
+                continue
+            if v > id_vertex:
+                new_dict[k] = v - 1
             else:
-                lowest = current_node.right
-                while lowest.left is not None:
-                    lowest = lowest.left
-                
-                current_node.key = lowest.key
-                current_node.data = lowest.data
-                
-                current_node.right = self.__delete(lowest.key, current_node.right)
-        if current_node is None:
-            return current_node
+                new_dict[k] = v
+        self.vertex_dict = new_dict
 
-        #rebalance
-        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
-        balance_coefficient = self.__balance_coefficient(current_node)
-        
-        #LR
-        if balance_coefficient > 1 and self.__balance_coefficient(current_node.left) < 0:
-            current_node.left = self._rotate_left(current_node.left)
-            return self._rotate_right(current_node)
-        #RL 
-        elif balance_coefficient < -1 and self.__balance_coefficient(current_node.right) > 0:
-            current_node.right = self._rotate_right(current_node.right)
-            return self._rotate_left(current_node)
-        
-        #RR
-        elif balance_coefficient > 1 and self.__balance_coefficient(current_node.left) >= 0:
-            return self._rotate_right(current_node)
+        # recreating neighbours list:
+        new_neigh_list = {}
+        for key in self.neighbours_list.keys():
+            new_values = []  # new list of values for every key
+            for value in self.neighbours_list[key]:
+                if value[0] == id_vertex:  # delete node
+                    continue
+                if value[0] > id_vertex:  # add reindexed node
+                    new_values.append((value[0] - 1, value[1]))
+                else:
+                    new_values.append(value)  # if node < deleting node dont change anything
+            if key > id_vertex:
+                new_neigh_list[key - 1] = new_values  # if key > deleting node reindex it
+                continue
+            if key == id_vertex:  # skip this key (node is deleted)
+                continue
+            else:
+                new_neigh_list[key] = new_values  # if node < deleting node dont change anything
+        self.neighbours_list = new_neigh_list
 
-        #LL
-        elif balance_coefficient < -1 and self.__balance_coefficient(current_node.right) <= 0:
-            return self._rotate_left(current_node)
+    def deleteEdge(self, vertex1, vertex2):
+        id_1 = self.getVertexIdx(vertex1)
+        id_2 = self.getVertexIdx(vertex2)
 
-        return current_node
-    
-    def _rotate_left(self, current_node):
-        new_start_node = current_node.right
-        current_node.right = new_start_node.left
-        new_start_node.left = current_node
-        
-        #update height of rebalanced nodes
-        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
-        new_start_node.height = max(self.__height(new_start_node.left), self.__height(new_start_node.right)) + 1
-        
-        return new_start_node
+        for edge in self.neighbours_list[id_1]:
+            if edge[0] == id_2:
+                self.neighbours_list[id_1].remove(edge)
+                break
+        # GRAPH IS NOW DIRECTED !!!
+        # for edge in self.neighbours_list[id_2]:
+        #    if edge[0] == id_1:
+        #        self.neighbours_list[id_2].remove(edge)
+        #        break
 
-    def _rotate_right(self, current_node):
-        new_start_node = current_node.left
-        current_node.left = new_start_node.right
-        new_start_node.right = current_node
-        
-        #update height of rebalanced nodes
-        current_node.height = max(self.__height(current_node.left), self.__height(current_node.right)) + 1
-        new_start_node.height = max(self.__height(new_start_node.left), self.__height(new_start_node.right)) + 1
-        
-        return new_start_node
+    def getVertexIdx(self, vertex):
+        return self.vertex_dict[vertex]
 
-    def __height(self, current_node):
-        if current_node is None:
+    def getVertex(self, vertex_idx):
+        for k, v in self.vertex_dict.items():
+            if v == vertex_idx:
+                return k
+
+    def neighbours(self, vertex_idx):
+        return self.neighbours_list[vertex_idx]
+
+    def order(self):
+        return len(self.vertex_list)
+
+    def size(self):
+        edges = 0
+        for v in self.neighbours_list.values():
+            edges += len(v)
+        return int(edges / 2)
+
+    def edges(self):
+        edges_ = []
+        for key in self.neighbours_list.keys():
+            for value in self.neighbours_list[key]:
+                if (key, value[0]) and (value[0], key) not in edges_:
+                    edges_.append((key, value[0]))
+        edges = []
+        for pair in edges_:
+            weight = 0
+            v1 = pair[0]
+            v2 = pair[1]
+            for edge in self.neighbours_list[v1]:
+                if edge[0] == v2:
+                    weight = edge[1]
+                    break
+            edges.append((str(self.getVertex(pair[0])), str(self.getVertex(pair[1])), weight))
+        return edges
+
+    def __str__(self):
+        return "\n".join([str(k) + " : " + str(v) for k, v in self.neighbours_list.items()])
+
+    def getEdge(self, v1, v2):
+        for edge in self.neighbours_list[v1]:
+            if edge[0] == v2:
+                return edge[1]
+
+    def bfs_search(self, start):
+        visited = []
+        parent = [None for _ in range(self.order())]
+        stack = [start]
+        while stack:
+            s = stack.pop(0)
+            neighs = self.neighbours(s)
+            for u in neighs:
+                # extra condition (instruction point 5)
+                if u[0] not in visited and self.getEdge(s, u[0]).residual > 0:
+                    stack.append(u[0])
+                    visited.append(u[0])
+                    parent[u[0]] = s
+        return parent
+
+    def calculate_flow(self, start, end, parent):
+        current = end
+        min_capacity = float('inf')
+
+        if parent[end] is None:
             return 0
-        return current_node.height
 
-    def __balance_coefficient(self, current_node):
-        if current_node is None:
-            return 0
-        else:
-            return self.__height(current_node.left) - self.__height(current_node.right)
+        while current is not start:
+            edge_ = self.getEdge(parent[current], current)
+            if min_capacity > edge_.residual:
+                min_capacity = edge_.residual
+            current = parent[current]
+
+        return min_capacity
+
+    def path_augmentation(self, start, end, parent, min_capacity):
+        current = end
+        while current is not start:
+            self.getEdge(parent[current], current).flow += min_capacity
+            self.getEdge(parent[current], current).residual -= min_capacity
+            self.getEdge(current, parent[current]).residual += min_capacity
+
+            current = parent[current]
+
+    def ford_fulkerson(self, start, end):
+        start = self.getVertexIdx(start)
+        end = self.getVertexIdx(end)
+
+        result = 0
+        parent = self.bfs_search(start)
+        min_capacity = self.calculate_flow(start, end, parent)
+        while min_capacity > 0:
+            result += min_capacity
+            self.path_augmentation(start, end, parent, min_capacity)
+            parent = self.bfs_search(start)
+            min_capacity = self.calculate_flow(start, end, parent)
+        return result
 
 
-if __name__ == "__main__":   
-    avl = AVL()
-    for key, data in {50:'A', 15:'B', 62:'C', 5:'D', 2:'E', 1:'F', 11:'G', 100:'H', 7:'I', 6:'J', 55:'K', 52:'L', 51:'M', 57:'N', 8:'O', 9:'P', 10:'R', 99:'S', 12: 'T'}.items():
-            avl.insert(key, data)
-    avl.print_tree()
-    avl.print()
-    print()
-    print(avl.search(10))
-    avl.delete(50)
-    avl.delete(52)
-    avl.delete(11)
-    avl.delete(57)
-    avl.delete(1)
-    avl.delete(12)
-    avl.insert(3, 'AA')
-    avl.insert(4, 'BB')
-    avl.delete(7)
-    avl.delete(8)
-    avl.print_tree()
-    avl.print()
+class Edge:
+    def __init__(self, capacity, isresidual):
+        self.capacity = capacity
+        self.flow = 0
+        self.residual = capacity
+        self.isresidual = isresidual
+
+    def __str__(self):
+        return f"{self.capacity} {self.flow} {self.residual} {self.isresidual}"
+
+    def __repr__(self):
+        return f"{self.capacity} {self.flow} {self.residual} {self.isresidual}"
+
+
+def printGraph(g):
+    n = g.order()
+    print("------GRAPH------", n)
+    for i in range(n):
+        v = g.getVertex(i)
+        print(v, end=" -> ")
+        nbrs = g.neighbours(i)
+        for (j, w) in nbrs:
+            print(g.getVertex(j), w, end=";")
+        print()
+    print("-------------------")
+
+
+if __name__ == '__main__':
+    # 3
+    # 23
+    # 5
+    # 6
+    graf_0 = [ ('s','u',2), ('u','t',1), ('u','v',3), ('s','v',1), ('v','t',2)]
+    graf_1 = [ ('s', 'a', 16), ('s', 'c', 13), ('a', 'c', 10), ('c', 'a', 4), ('a', 'b', 12), ('b', 'c', 9), ('b', 't', 20), ('c', 'd', 14), ('d', 'b', 7), ('d', 't', 4) ]
+    graf_2 = [ ('s', 'a', 3), ('s', 'c', 3), ('a', 'b', 4), ('b', 's', 3), ('b', 'c', 1), ('b', 'd', 2), ('c', 'e', 6), ('c', 'd', 2), ('d', 't', 1), ('e', 't', 9)]
+    graf_3 = [('s', 'a', 8), ('s', 'd', 3), ('a', 'b', 9), ('b', 'd', 7), ('b', 't', 2), ('c', 't', 5), ('d', 'b', 7), ('d', 'c', 4)]
+    for i in range(4):
+        gl = GraphList()
+        for elem in eval('graf_' + str(i)):
+            if Vertex(elem[0]) not in gl.vertex_list:
+                gl.insertVertex(Vertex(elem[0]))
+            if Vertex(elem[1]) not in gl.vertex_list:
+                gl.insertVertex(Vertex(elem[1]))
+            gl.insertEdge(Vertex(elem[0]), Vertex(elem[1]), Edge(elem[2], False))
+            gl.insertEdge(Vertex(elem[1]), Vertex(elem[0]), Edge(0, True))
+        print(f"Max przepływ dla grafu numer {i}:")
+        print(gl.ford_fulkerson(Vertex('s'), Vertex('t')))
+        printGraph(gl)
